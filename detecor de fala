@@ -1,0 +1,158 @@
+# pip install sounddevice scipy SpeechRecognition
+import sounddevice as sd
+import scipy.io.wavfile as wav
+import speech_recognition as sr
+import random
+import time
+
+BANCO_PALAVRAS = {
+    "facil": [
+        ("casa", "house"), ("gato", "cat"), ("cachorro", "dog"),
+        ("livro", "book"), ("água", "water"), ("sol", "sun"),
+        ("mesa", "table"), ("porta", "door"), ("carro", "car"),
+        ("amigo", "friend"),
+    ],
+    "medio": [
+        ("felicidade", "happiness"), ("montanha", "mountain"),
+        ("computador", "computer"), ("professor", "teacher"),
+        ("viagem", "trip"), ("cozinha", "kitchen"),
+        ("biblioteca", "library"), ("trabalho", "work"),
+        ("floresta", "forest"), ("cidade", "city"),
+    ],
+    "dificil": [
+        ("desenvolvimento", "development"), ("responsabilidade", "responsibility"),
+        ("conhecimento", "knowledge"), ("oportunidade", "opportunity"),
+        ("independência", "independence"), ("comunicação", "communication"),
+        ("necessidade", "necessity"), ("inteligência", "intelligence"),
+        ("experiência", "experience"), ("universidade", "university"),
+    ],
+}
+
+CONFIG_DIFICULDADE = {
+    "facil":   {"vidas": 5, "tempo": 6, "pontos": 10, "bonus_tempo": 5},
+    "medio":   {"vidas": 3, "tempo": 5, "pontos": 20, "bonus_tempo": 3},
+    "dificil": {"vidas": 2, "tempo": 4, "pontos": 30, "bonus_tempo": 1},
+}
+
+
+def gravar_e_reconhecer(duration, sample_rate=44100):
+    print(f"🎙 Fale agora... ({duration}s)")
+    recording = sd.rec(
+        int(duration * sample_rate),
+        samplerate=sample_rate,
+        channels=1,
+        dtype="int16"
+    )
+    sd.wait()
+
+    wav.write("tentativa.wav", sample_rate, recording)
+    print("⏳ Reconhecendo...")
+
+    recognizer = sr.Recognizer()
+    with sr.AudioFile("tentativa.wav") as source:
+        audio = recognizer.record(source)
+
+    return recognizer.recognize_google(audio, language="en-US")
+
+
+def escolher_dificuldade():
+    print("\n📊 Escolha o nível de dificuldade:")
+    print("  1. 🟢 Fácil")
+    print("  2. 🟡 Médio")
+    print("  3. 🔴 Difícil")
+
+    while True:
+        escolha = input("Digite o número da dificuldade: ").strip()
+        if escolha == "1":
+            return "facil"
+        elif escolha == "2":
+            return "medio"
+        elif escolha == "3":
+            return "dificil"
+        print("⚠️ Opção inválida, tente novamente.")
+
+
+def mostrar_cabecalho(rodada, vidas, pontos, sequencia):
+    print("\n" + "=" * 40)
+    print(f"🎮  SPEAK RIGHT  |  Rodada {rodada}")
+    print(f"❤️ Vidas: {vidas}   ⭐ Pontos: {pontos}   🔥 Sequência: {sequencia}")
+    print("=" * 40)
+
+
+def jogar():
+    print("╔══════════════════════════════════════╗")
+    print("║        🗣️  SPEAK RIGHT — o jogo       ║")
+    print("║  Veja a palavra em português e fale   ║")
+    print("║      a tradução em inglês em voz alta ║")
+    print("╚══════════════════════════════════════╝")
+
+    dificuldade = escolher_dificuldade()
+    config = CONFIG_DIFICULDADE[dificuldade]
+    vidas = config["vidas"]
+    pontos = 0
+    sequencia = 0
+    rodada = 0
+
+    palavras_disponiveis = BANCO_PALAVRAS[dificuldade].copy()
+    random.shuffle(palavras_disponiveis)
+
+    while vidas > 0:
+        if not palavras_disponiveis:
+            palavras_disponiveis = BANCO_PALAVRAS[dificuldade].copy()
+            random.shuffle(palavras_disponiveis)
+
+        rodada += 1
+        pt_word, en_word = palavras_disponiveis.pop()
+
+        mostrar_cabecalho(rodada, vidas, pontos, sequencia)
+        print(f"\n📝 Palavra: \033[1m{pt_word.upper()}\033[0m")
+        print(f"👉 Diga a tradução em inglês!")
+        time.sleep(1)
+
+        try:
+            reconhecido = gravar_e_reconhecer(config["tempo"]).lower().strip()
+            print(f"🗨️ Você disse: '{reconhecido}'")
+        except sr.UnknownValueError:
+            reconhecido = ""
+            print("❌ Não consegui entender o que você disse.")
+        except sr.RequestError as e:
+            print(f"❌ Erro no serviço de reconhecimento: {e}")
+            reconhecido = ""
+
+        if reconhecido == en_word.lower():
+            sequencia += 1
+            bonus = (sequencia - 1) * config["bonus_tempo"] if sequencia > 1 else 0
+            ganho = config["pontos"] + bonus
+            pontos += ganho
+            print(f"✅ CORRETO! '{en_word}' 🎉  (+{ganho} pontos)")
+            if sequencia >= 3:
+                print(f"🔥 Sequência de {sequencia} acertos! Continue assim!")
+        else:
+            vidas -= 1
+            sequencia = 0
+            print(f"❌ ERRADO! A resposta certa era '{en_word}'.")
+            print(f"💔 Você perdeu uma vida! Vidas restantes: {vidas}")
+
+        input("\n➡️  Pressione ENTER para continuar...")
+
+    print("\n" + "☠️ " * 10)
+    print("💀 MOGEED 💀")
+    print(f"🏁 Você jogou {rodada} rodada(s)")
+    print(f"⭐ Pontuação final: {pontos}")
+
+    if pontos >= 100:
+        print("🏆 Excelente! Você é um mestre da pronúncia!")
+    elif pontos >= 50:
+        print("👍 Muito bem! Continue praticando!")
+    else:
+        print("📚 Continue estudando, você vai melhorar!")
+
+    novamente = input("\n🔁 Jogar novamente? (s/n): ").strip().lower()
+    if novamente == "s":
+        jogar()
+    else:
+        print("👋 Até a próxima!")
+
+
+if __name__ == "__main__":
+    jogar()
