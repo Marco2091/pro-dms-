@@ -1,27 +1,22 @@
-{% extends "base.html" %}
-{% block conteudo %}
-<form action="/resultado" method="post" class="card">
-    <h2>Seus hábitos</h2>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>EcoPegada</title>
+</head>
+<body>
+    <h1>🌍 EcoPegada</h1>
+    <p>Descubra quanto CO₂ seus hábitos emitem por ano.</p>
 
-    <label>Km rodados de carro por semana
-        <input type="number" name="km_carro" min="0" step="any" value="0" required></label>
+    <form method="post">
+        <p>Km de carro por semana: <input type="number" name="km_carro" step="any" min="0" value="0" required></p>
+        <p>Consumo de energia por mês (kWh): <input type="number" name="kwh" step="any" min="0" value="150" required></p>
+        <p>Refeições com carne por semana: <input type="number" name="carne" step="any" min="0" value="7" required></p>
+        <button type="submit">Calcular</button>
+    </form>
 
-    <label>Km de ônibus por semana
-        <input type="number" name="km_onibus" min="0" step="any" value="0" required></label>
-
-    <label>Consumo de energia por mês (kWh, está na conta de luz)
-        <input type="number" name="kwh_mes" min="0" step="any" value="150" required></label>
-
-    <label>Refeições com carne por semana
-        <input type="number" name="refeicoes_carne" min="0" step="any" value="7" required></label>
-
-    <label>Como você descarta o lixo?
-        <select name="lixo">
-            <option value="separa">Separo o reciclável</option>
-            <option value="parcial" selected>Separo às vezes</option>
-            <option value="nao_separa">Não separo</option>
-        </select></label>
-
-    <button type="submit">Calcular minha pegada</button>
-</form>
-{% endblock %}
+    {% if total is not none %}
+        <h2>Sua pegada: {{ total }} toneladas de CO₂ por ano</h2>
+    {% endif %}
+</body>
+</html>
